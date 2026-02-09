@@ -24,69 +24,86 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Async startup function
+// Async startup - modified for Vercel support
 const startServer = async () => {
-    // Connect to database first
-    await connectDB();
-    
-    // Auto-seed if database is empty
-    await autoSeed();
-    
-    const app = express();
+    try {
+        // Connect to database
+        await connectDB();
+        
+        // Auto-seed only if not in production or explicit env var
+        if (process.env.NODE_ENV !== 'production' || process.env.SEED_DB === 'true') {
+            await autoSeed();
+        }
+    } catch (error) {
+        console.error('Startup error:', error);
+    }
+};
 
-    // Middleware
-    app.use(cors({
-        origin: [
-            'http://localhost:5173', 
-            'http://localhost:3000', 
-            'http://127.0.0.1:5173', 
-            'http://localhost:8080', 
-            'http://127.0.0.1:8080',
-            'https://travelbarmagly.vercel.app',
-            process.env.FRONTEND_URL
-        ].filter(Boolean),
-        credentials: true
-    }));
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+startServer();
 
-    // Static files for uploads
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const app = express();
 
-    // API Routes
-    app.use('/api/auth', authRoutes);
-    app.use('/api/users', usersRoutes);
-    app.use('/api/destinations', destinationsRoutes);
-    app.use('/api/packages', packagesRoutes);
-    app.use('/api/bookings', bookingsRoutes);
-    app.use('/api/messages', messagesRoutes);
-    app.use('/api/content', contentRoutes);
-    app.use('/api/settings', settingsRoutes);
-    app.use('/api/reports', reportsRoutes);
-    app.use('/api/upload', uploadRoutes);
+// Middleware
+app.use(cors({
+    origin: [
+        'http://localhost:5173', 
+        'http://localhost:3000', 
+        'http://127.0.0.1:5173', 
+        'http://localhost:8080', 
+        'http://127.0.0.1:8080',
+        'https://travelbarmagly.vercel.app',
+        process.env.FRONTEND_URL
+    ].filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-    // Health check
-    app.get('/api/health', (req, res) => {
-        res.json({ status: 'ok', message: 'World Trip API is running! 🚀' });
+// Static files for uploads (Note: Vercel doesn't persist these!)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/destinations', destinationsRoutes);
+app.use('/api/packages', packagesRoutes);
+app.use('/api/bookings', bookingsRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'World Trip API is running! 🚀' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
+});
 
-    // Error handling middleware
-    app.use((err, req, res, next) => {
-        console.error(err.stack);
-        res.status(500).json({
-            success: false,
-            message: 'خطأ في الخادم',
-            error: process.env.NODE_ENV === 'development' ? err.message : undefined
-        });
-    });
+// Root route for Vercel
+app.get('/', (req, res) => {
+    res.send('World Trip API is running');
+});
 
-    // 404 handler
-    app.use((req, res) => {
-        res.status(404).json({ success: false, message: 'المسار غير موجود' });
-    });
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'المسار غير موجود' });
+});
 
-    const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
+// Only listen if not on Vercel (Vercel exports the app)
+if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`
 ╔═══════════════════════════════════════════════╗
@@ -99,10 +116,6 @@ const startServer = async () => {
 ╚═══════════════════════════════════════════════╝
         `);
     });
-};
+}
 
-// Start the server
-startServer().catch(err => {
-    console.error('❌ Failed to start server:', err);
-    process.exit(1);
-});
+export default app;
