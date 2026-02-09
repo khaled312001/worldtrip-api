@@ -25,8 +25,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize cached connection
-connectDB();
+// Initialize cached connection and auto-seed
+connectDB().then(() => autoSeed());
 
 const app = express();
 
