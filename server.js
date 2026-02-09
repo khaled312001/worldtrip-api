@@ -74,23 +74,31 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Health check (Simple)
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
     try {
         const status = mongoose.connection ? mongoose.connection.readyState : 0;
         const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+        
+        // Count documents to verify data presence
+        const counts = {
+            users: await mongoose.model('User').countDocuments().catch(() => -1),
+            destinations: await mongoose.model('Destination').countDocuments().catch(() => -1),
+            packages: await mongoose.model('Package').countDocuments().catch(() => -1)
+        };
         
         res.json({ 
             status: 'ok', 
             message: 'World Trip API is running! 🚀',
             dbState: states[status] || 'unknown',
+            counts,
             envCheck: {
                 hasMongoURI: !!process.env.MONGODB_URI,
-                nodeEnv: process.env.NODE_ENV
+                nodeEnv: process.env.NODE_ENV,
+                hasJwtSecret: !!process.env.JWT_SECRET
             }
         });
     } catch (err) {
-        // Fallback if even that fails
-        res.json({ status: 'ok', message: 'API running (DB status unavailable)', error: err.message });
+        res.json({ status: 'error', message: 'API running but health check failed', error: err.message });
     }
 });
 
