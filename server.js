@@ -24,22 +24,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Async startup - modified for Vercel support
-const startServer = async () => {
-    try {
-        // Connect to database
-        await connectDB();
-        
-        // Auto-seed only if not in production or explicit env var
-        if (process.env.NODE_ENV !== 'production' || process.env.SEED_DB === 'true') {
-            await autoSeed();
-        }
-    } catch (error) {
-        console.error('Startup error:', error);
-    }
-};
-
-startServer();
+// Initialize cached connection
+connectDB();
 
 const app = express();
 
