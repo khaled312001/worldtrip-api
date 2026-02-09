@@ -29,7 +29,18 @@ connectDB();
 
 const app = express();
 
-// Middleware
+// Middleware to ensure DB connection (Critical for Serverless Cold Starts)
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error('Database connection failed in middleware:', error);
+        next(error);
+    }
+});
+
+// CORS Middleware
 app.use(cors({
     origin: [
         'http://localhost:5173', 
