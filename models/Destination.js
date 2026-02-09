@@ -56,5 +56,5 @@ const destinationSchema = new mongoose.Schema({
     timestamps: true
 });
 
-const Destination = mongoose.model('Destination', destinationSchema);
+const Destination = mongoose.models.Destination || mongoose.model('Destination', destinationSchema);
 export default Destination;

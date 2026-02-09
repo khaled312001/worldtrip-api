@@ -61,20 +61,25 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Health check with DB status
+// Health check (Simple)
 app.get('/api/health', (req, res) => {
-    const status = mongoose.connection.readyState;
-    const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
-    
-    res.json({ 
-        status: 'ok', 
-        message: 'World Trip API is running! 🚀',
-        dbState: states[status],
-        envCheck: {
-            hasMongoURI: !!process.env.MONGODB_URI,
-            nodeEnv: process.env.NODE_ENV
-        }
-    });
+    try {
+        const status = mongoose.connection ? mongoose.connection.readyState : 0;
+        const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+        
+        res.json({ 
+            status: 'ok', 
+            message: 'World Trip API is running! 🚀',
+            dbState: states[status] || 'unknown',
+            envCheck: {
+                hasMongoURI: !!process.env.MONGODB_URI,
+                nodeEnv: process.env.NODE_ENV
+            }
+        });
+    } catch (err) {
+        // Fallback if even that fails
+        res.json({ status: 'ok', message: 'API running (DB status unavailable)', error: err.message });
+    }
 });
 
 // Error handling middleware
