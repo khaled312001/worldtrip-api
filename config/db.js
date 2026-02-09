@@ -17,9 +17,16 @@ const connectDB = async () => {
         }
     }
 
-    // 2. Return cached connection if available
-    if (cached.conn) {
+    // 2. Return cached connection ONLY if actually connected
+    if (cached.conn && mongoose.connection.readyState === 1) {
         return cached.conn;
+    }
+
+    // Reset cache if disconnected to force reconnection
+    if (cached.conn && mongoose.connection.readyState !== 1) {
+        console.log('⚠️ Cached connection exists but readyState is', mongoose.connection.readyState, '- Reconnecting...');
+        cached.conn = null;
+        cached.promise = null;
     }
 
     // 3. Connect to MongoDB Atlas (Production) or Local (URI provided)
