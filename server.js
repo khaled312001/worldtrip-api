@@ -104,14 +104,11 @@ app.get('/api/health', async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('--- GLOBAL ERROR HANDLER ---');
     console.error(err.stack);
     res.status(500).json({
         success: false,
         message: 'خطأ في الخادم',
-        error: err.message, // Temporarily enabled for debugging
-        stack: err.stack,     // Temporarily enabled for debugging
-        path: req.path
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 });
 

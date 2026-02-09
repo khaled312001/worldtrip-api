@@ -17,7 +17,6 @@ const generateToken = (id) => {
 // @desc    Login user
 // @access  Public
 router.post('/login', async (req, res) => {
-    console.log('--- LOGIN ATTEMPT ---', req.body.email);
     try {
         const { email, password } = req.body;
 
@@ -31,18 +30,14 @@ router.post('/login', async (req, res) => {
         // 1. Find User
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
-            console.log('Login failed: User not found');
             return res.status(401).json({
                 success: false,
                 message: 'بيانات الدخول غير صحيحة'
             });
         }
 
-        // 2. Compare Password directly using bcryptjs
-        console.log('Comparing passwords using bcryptjs directly...');
+        // 2. Compare Password
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log('Password Match Result:', isMatch);
-
         if (!isMatch) {
             return res.status(401).json({
                 success: false,
@@ -58,17 +53,12 @@ router.post('/login', async (req, res) => {
         }
 
         // 3. Generate Token with Fallback Secret
-        console.log('Generating JWT token...');
         const secret = process.env.JWT_SECRET || 'worldtrip_secret_key_2024';
         const expire = process.env.JWT_EXPIRE || '30d';
 
-        console.log('Using secret length:', secret.length);
-        
         const token = jwt.sign({ id: user._id }, secret, {
             expiresIn: expire
         });
-
-        console.log('Login successful for:', user.email);
         res.json({
             success: true,
             token,
@@ -103,7 +93,8 @@ router.get('/me', async (req, res) => {
             return res.status(401).json({ success: false, message: 'غير مخول' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const secret = process.env.JWT_SECRET || 'worldtrip_secret_key_2024';
+        const decoded = jwt.verify(token, secret);
         const user = await User.findById(decoded.id);
 
         if (!user) {
