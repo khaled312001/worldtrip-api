@@ -19,21 +19,21 @@ const users = [
     {
         name: 'المدير العام',
         email: 'admin@worldtrip.com',
-        password: 'admin123',
+        password: bcrypt.hashSync('admin123', 10), // Hash manually
         role: 'admin',
         phone: '+966500000001'
     },
     {
         name: 'محمد أحمد',
         email: 'manager@worldtrip.com',
-        password: 'manager123',
+        password: bcrypt.hashSync('manager123', 10), // Hash manually
         role: 'manager',
         phone: '+966500000002'
     },
     {
         name: 'سارة علي',
         email: 'staff@worldtrip.com',
-        password: 'staff123',
+        password: bcrypt.hashSync('staff123', 10), // Hash manually
         role: 'staff',
         phone: '+966500000003'
     }
@@ -489,7 +489,7 @@ const seedDatabase = async () => {
 
         // Seed Users
         console.log('👤 Seeding users...');
-        await User.create(users);
+        await User.insertMany(users);
 
         // Seed Destinations
         console.log('🗺️ Seeding destinations...');

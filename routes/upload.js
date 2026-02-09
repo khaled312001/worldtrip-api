@@ -8,7 +8,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import cloudinary from '../config/cloudinary.js';
+import { Readable } from 'stream';
+
 const router = express.Router();
+
+// Helper to upload buffer to cloudinary
+const uploadToCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: 'worldtrip' },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
+        const readable = new Readable();
+        readable._read = () => {};
+        readable.push(buffer);
+        readable.push(null);
+        readable.pipe(stream);
+    });
+};
 
 // @route   POST /api/upload
 // @desc    Upload single image
@@ -19,14 +40,14 @@ router.post('/', protect, admin, upload.single('image'), async (req, res) => {
             return res.status(400).json({ success: false, message: 'لم يتم تحميل أي ملف' });
         }
 
-        const imageUrl = `/uploads/${req.file.filename}`;
+        const result = await uploadToCloudinary(req.file.buffer);
         
         res.json({
             success: true,
             data: {
-                filename: req.file.filename,
-                url: imageUrl,
-                size: req.file.size
+                filename: result.public_id,
+                url: result.secure_url,
+                size: result.bytes
             },
             message: 'تم رفع الصورة بنجاح'
         });
@@ -44,10 +65,13 @@ router.post('/multiple', protect, admin, upload.array('images', 10), async (req,
             return res.status(400).json({ success: false, message: 'لم يتم تحميل أي ملفات' });
         }
 
-        const images = req.files.map(file => ({
-            filename: file.filename,
-            url: `/uploads/${file.filename}`,
-            size: file.size
+        const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+        const results = await Promise.all(uploadPromises);
+
+        const images = results.map(result => ({
+            filename: result.public_id,
+            url: result.secure_url,
+            size: result.bytes
         }));
         
         res.json({
