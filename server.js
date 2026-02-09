@@ -61,9 +61,20 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Health check
+// Health check with DB status
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'World Trip API is running! 🚀' });
+    const status = mongoose.connection.readyState;
+    const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+    
+    res.json({ 
+        status: 'ok', 
+        message: 'World Trip API is running! 🚀',
+        dbState: states[status],
+        envCheck: {
+            hasMongoURI: !!process.env.MONGODB_URI,
+            nodeEnv: process.env.NODE_ENV
+        }
+    });
 });
 
 // Error handling middleware
